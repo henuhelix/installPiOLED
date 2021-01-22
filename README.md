@@ -4,7 +4,7 @@ and use https://github.com/rbonghi/jetson_stats
 more info
 Blog https://microcontrollerkits.blogspot.com/2021/01/nvidia-jetson-performance-monitor.html
 
-
+![Alt text](https://1.bp.blogspot.com/-3pYj8QlYD50/YAoji0hcArI/AAAAAAABGrs/0zMbAmtzresfzGaq0UF5aBF6aH5D6graACLcBGAsYHQ/s1600/jetson-performance-monitor-oled.jpg "Jetson Performance Monitor on OLED Display ")
 
 
 # installPiOLED
