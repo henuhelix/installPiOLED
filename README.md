@@ -1,3 +1,12 @@
+forked from https://github.com/JetsonHacksNano/installPiOLED
+and use https://github.com/rbonghi/jetson_stats
+
+more info
+Blog https://microcontrollerkits.blogspot.com/2021/01/nvidia-jetson-performance-monitor.html
+
+
+
+
 # installPiOLED
 Install the Adafruit PiOLED 128x32 Monochrome OLED driver (3527)
 
