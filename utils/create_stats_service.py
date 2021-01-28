@@ -9,7 +9,7 @@ Description=PiOLED stats display service
 [Service]
 Type=simple
 User=%s
-ExecStart=/bin/sh -c "python3 -m pioled.stats"
+ExecStart=/usr/bin/python3 -u /home/jetson/installPiOLED/pioled/stats.py
 WorkingDirectory=%s
 Restart=always
 
