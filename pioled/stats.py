@@ -41,11 +41,13 @@ mode      = 0
 def get_network_interface_state(interface):
     return subprocess.check_output('cat /sys/class/net/%s/operstate' % interface, shell=True).decode('ascii')[:-1]
 
-
 def get_ip_address(interface):
-    if get_network_interface_state(interface) == 'down':
+    try:
+        if get_network_interface_state(interface) == 'down':
+            return None
+        cmd = "ifconfig %s | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1'" % interface
+    except:
         return None
-    cmd = "ifconfig %s | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1'" % interface
     return subprocess.check_output(cmd, shell=True).decode('ascii')[:-1]
 
 if __name__ == "__main__":
@@ -80,8 +82,8 @@ if __name__ == "__main__":
     prev_value = None
 
     # Pin Setup:
-    #GPIO.setmode(GPIO.BCM)  # BCM pin-numbering scheme from Raspberry Pi
-    #GPIO.setup(input_pin, GPIO.IN)  # set pin as an input pin
+    GPIO.setmode(GPIO.BCM)  # BCM pin-numbering scheme from Raspberry Pi
+    GPIO.setup(input_pin, GPIO.IN)  # set pin as an input pin
 
     # Load default font.
     font   = ImageFont.load_default()
@@ -117,89 +119,109 @@ if __name__ == "__main__":
 
         while jetson.ok():
 
-        #    value = GPIO.input(input_pin)
-        #    if value == GPIO.LOW:
-        #       mode = mode+1
-        #       if mode >3:
-        #           mode = 0
-        #       print(mode)    
+            value = GPIO.input(input_pin)
+            if value == GPIO.LOW:
+               mode = mode+1
+               if mode >3:
+                   mode = 0
+               print(mode)    
 
             data = jetson.stats
 
-        #    if mode == 0:
+            if mode == 0:
                 # Draw a black filled box to clear the image.
-            draw.rectangle((0,0,width,height), outline=0, fill=0)
+                draw.rectangle((0,0,width,height), outline=0, fill=0)
 
                 # Shell scripts for system monitoring from here : https://unix.stackexchange.com/questions/119126/command-to-display-memory-usage-disk-usage-and-cpu-load
-            cmd = "hostname -I | cut -d\' \' -f1"
-            IP  = subprocess.check_output(cmd, shell = True )
+                #cmd = "hostname -I | cut -d\' \' -f2"
+                #IP  = subprocess.check_output(cmd, shell = True )
 
-            CPU = int((data['CPU1']+data['CPU2']+data['CPU3']+data['CPU4'])/4)
-            GPU = data['GPU']
-            Temp = data['Temp AO']
+                CPU = int((data['CPU1']+data['CPU2']+data['CPU3']+data['CPU4'])/4)
+                GPU = data['GPU']
+                Temp = data['Temp AO']
 
                 # Write two lines of text.
-            draw.text((x, top),   "IP "  + str(IP.decode('utf-8')), font=font, fill=255)
-            draw.text((x, top+8),"CPU " + str(CPU)  +" %", font=font, fill=255)
-            draw.text((x, top+16),"GPU " + str(GPU)  +" %", font=font, fill=255)
-            draw.text((x, top+24),"Temp "+ str(Temp) +" ºC", font=font, fill=255)
+                #draw.text((x, top+24),   "IP "  + str(IP.decode('utf-8')), font=font, fill=255)
+                draw.text((x, top),"Temp     "+ str(Temp) +" ºC", font=font, fill=255)
+                draw.text((x, top+48),"CPU " + str(CPU)  +" %", font=font, fill=255)
+                draw.text((x, top+56),"GPU " + str(GPU)  +" %", font=font, fill=255)
 
-        #    if mode == 1:
+
+                draw.text((x, top+24),"usb0: " + str(get_ip_address('usb0')), font=font, fill=255)
+                draw.text((x, top+32),"usb1: " + str(get_ip_address('usb1')), font=font, fill=255)
+
+
+
+
+                cur = data['power cur']/1000
+                avg = data['power avg']/1000
+
+                draw.text((x, top+8),"Current  " + str(cur)  +" W", font=font, fill=255)
+                draw.text((x, top+16),"Average  " + str(avg)  +" W", font=font, fill=255)
+
+
+
+                cmd = "free -m | awk 'NR==2{printf \"%s/%s MB\", $3,$2 }'"
+                MemUsage = subprocess.check_output(cmd, shell=True)
+                #print(Disk)
+                draw.text((x, top+40),"MEM " + str(MemUsage.decode('utf-8')),  font=font, fill=255)
+
+
+
+            if mode == 1:
                 # Draw a black filled box to clear the image.
-    #            draw.rectangle((0,0,width,height), outline=0, fill=0)
+                draw.rectangle((0,0,width,height), outline=0, fill=0)
 
-    #            cmd = "nmcli d wifi | awk 'NR==2{printf \"%s\", $2 }'"
-    #            wifi = subprocess.check_output(cmd, shell=True)
+                #cmd = "nmcli d wifi | awk 'NR==2{printf \"%s\", $2 }'"
+                #wifi = subprocess.check_output(cmd, shell=True)
 
-    #            cmd = "nmcli d wifi | awk 'NR==2{printf \"%d\", $7}'"
-    #            level = subprocess.check_output(cmd, shell=True)
+                #cmd = "nmcli d wifi | awk 'NR==2{printf \"%d\", $7}'"
+                #level = subprocess.check_output(cmd, shell=True)
 
-    #            draw.text((x, top),   "WiFi " + str(get_ip_address('wlan0')), font=font, fill=255)
-    #            draw.text((x, top+8),"SSID " + str(wifi.decode('utf-8')),  font=font, fill=255)
-    #            draw.text((x, top+16),"Signal " + str(level.decode('utf-8'))+" %",  font=font, fill=255)   
+                #draw.text((x, top),   "WiFi " + str(get_ip_address('wlan0')), font=font, fill=255)
+                #draw.text((x, top+8),"SSID " + str(wifi.decode('utf-8')),  font=font, fill=255)
+                #draw.text((x, top+16),"Signal " + str(level.decode('utf-8'))+" %",  font=font, fill=255)   
 
             
-        #    if mode == 2:    
+            if mode == 2:    
                 # Draw a black filled box to clear the image.
-        #        draw.rectangle((0,0,width,height), outline=0, fill=0)
+                draw.rectangle((0,0,width,height), outline=0, fill=0)
 
-            cmd = "free -m | awk 'NR==2{printf \"Ram %.0f%% \", $3*100/$2 }'"
-            RAM = subprocess.check_output(cmd, shell=True)
+                cmd = "free -m | awk 'NR==2{printf \"Ram %.0f%% \", $3*100/$2 }'"
+                RAM = subprocess.check_output(cmd, shell=True)
 
-            #    cmd = "free -m | awk 'NR==2{printf \"%s/%s MB.\", $3,$2 }'"
-            #    MemUsage = subprocess.check_output(cmd, shell=True)
+                cmd = "free -m | awk 'NR==2{printf \"%s/%s MB.\", $3,$2 }'"
+                MemUsage = subprocess.check_output(cmd, shell=True)
 
                 # cmd = "free -m | awk 'NR==3{printf \"Swap: %s/%sMB %.2f%%\", $3,$2,$3*100/$2 }'"
                 # SwapUsage = subprocess.check_output(cmd, shell = True )
 
-            #    cmd = "df -h | awk '$NF==\"/\"{printf \"Disk %s\", $5}'"
-            #    Disk = subprocess.check_output(cmd, shell=True)
+                cmd = "df -h | awk '$NF==\"/\"{printf \"Disk %s\", $5}'"
+                Disk = subprocess.check_output(cmd, shell=True)
 
-            #    cmd = "df -h | awk '$NF==\"/\"{printf \"%d/%d GB.\", $3,$2}'"
-            #    Disk1 = subprocess.check_output(cmd, shell=True)
+                cmd = "df -h | awk '$NF==\"/\"{printf \"%d/%d GB.\", $3,$2}'"
+                Disk1 = subprocess.check_output(cmd, shell=True)
 
-                #print(Disk)
-            draw.text((x, top),   str(RAM.decode('utf-8')),  font=font, fill=255)
-            #    draw.text((x, top+8),str(MemUsage.decode('utf-8')),  font=font, fill=255)
+                print(Disk)
+                draw.text((x, top),   str(RAM.decode('utf-8')),  font=font, fill=255)
+                draw.text((x, top+8),str(MemUsage.decode('utf-8')),  font=font, fill=255)
                 #draw.text((x, top+32),    str(SwapUsage.decode('utf-8')),  font=font, fill=255)
-            #    draw.text((x, top+16),str(Disk.decode('utf-8')),  font=font, fill=255)
-            #    draw.text((x, top+24),str(Disk1.decode('utf-8')), font=font, fill=255)
+                draw.text((x, top+16),str(Disk.decode('utf-8')),  font=font, fill=255)
+                draw.text((x, top+24),str(Disk1.decode('utf-8')), font=font, fill=255)
 
-        #    if mode == 3:
+            if mode == 3:
                 # Draw a black filled box to clear the image.
-        #        draw.rectangle((0,0,width,height), outline=0, fill=0)
+                draw.rectangle((0,0,width,height), outline=0, fill=0)
 
-            cur = data['power cur']/1000
-        #        avg = data['power avg']/1000
 
                 # Write two lines of text.
-        #        draw.text((x, top),   "POWER "  , font=font, fill=255)
-            draw.text((x, top+8),"Current  " + str(cur)  +" W.", font=font, fill=255)
-        #        draw.text((x, top+16),"Average " + str(avg)  +" W.", font=font, fill=255)
-        #        draw.text((x, top+24),"Temp "    + str(Temp) +" ºC", font=font, fill=255)
+                draw.text((x, top),   "POWER "  , font=font, fill=255)
+                draw.text((x, top+8),"Current  " + str(cur)  +" W.", font=font, fill=255)
+                draw.text((x, top+16),"Average " + str(avg)  +" W.", font=font, fill=255)
+                draw.text((x, top+24),"Temp "    + str(Temp) +" ºC", font=font, fill=255)
     
-        disp.image(image)
-        disp.display()
-        time.sleep(0.5)
+            disp.image(image)
+            disp.display()
+            time.sleep(1.0)
 
             #break
